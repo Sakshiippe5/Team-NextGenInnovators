@@ -1,0 +1,61 @@
+{
+  "student_id": "STU-001",
+  "summary": "A self-motivated and independent learner with a preference for visual learning and a strong belief in practice as a means to improvement.",
+  "big5_analysis": {
+    "openness": {
+      "score": 60,
+      "level": "Moderate",
+      "description": "Shows some curiosity but tends to rely on independent thinking and practice."
+    },
+    "conscientiousness": {
+      "score": 70,
+      "level": "High",
+      "description": "Demonstrates goal-oriented behavior with a strong emphasis on practice and self-improvement."
+    },
+    "extraversion": {
+      "score": 30,
+      "level": "Low",
+      "description": "Prefers working alone and pushing through challenges independently."
+    },
+    "agreeableness": {
+      "score": 50,
+      "level": "Moderate",
+      "description": "Values independence but may benefit from more cooperative and collaborative approaches."
+    },
+    "neuroticism": {
+      "score": 40,
+      "level": "Moderate",
+      "description": "Experiences some stress but manages it through independent effort and practice."
+    }
+  },
+  "learning_profile": {
+    "vark": {
+      "primary_style": "Visual",
+      "scores": {
+        "visual": 90,
+        "auditory": 20,
+        "read_write": 30,
+        "kinesthetic": 40
+      },
+      "description": "Learns best through watching videos, indicating a strong preference for visual learning."
+    },
+    "growth_mindset_score": 80,
+    "grit_score": 85,
+    "resilience_level": "High"
+  },
+  "strengths": [
+    "Strong self-motivation",
+    "Independent learner",
+    "Belief in practice as a means to improvement"
+  ],
+  "areas_for_growth": [
+    "Developing social collaboration skills",
+    "Seeking help and feedback from others",
+    "Exploring diverse learning strategies beyond visual"
+  ],
+  "tailored_recommendations": [
+    "Engage in peer-to-peer learning to enhance collaboration skills",
+    "Use video tutorials as a primary learning resource",
+    "Reflect on challenges to identify areas where seeking help could be beneficial"
+  ]
+}
