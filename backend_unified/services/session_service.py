@@ -1,5 +1,5 @@
 from backend_unified.models.adaptive_context import AdaptiveContext
-from backend_unified.models.schemas import SubmissionRequest, AnswerEvaluationResponse, Question
+from backend_unified.models.schemas import SubmissionRequest, AnswerEvaluationResponse, Question, QuestionResponse, AdaptationTrace
 from backend_unified.services.learning_state_service import LearningStateService
 from backend_unified.services.question_strategy import QuestionStrategy
 from backend_unified.services.explainability_service import ExplainabilityService
@@ -13,8 +13,14 @@ session_store = {}
 
 class SessionService:
     @staticmethod
-    def initialize_session(user_id: str, topic: str, concept: str) -> AdaptiveContext:
-        context = AdaptiveContext(user_id=user_id, current_topic=topic, current_concept=concept)
+    def initialize_session(user_id: str, topic: str, concept: str, traits: dict = None, exam_config: dict = None) -> AdaptiveContext:
+        context = AdaptiveContext(
+            user_id=user_id, 
+            current_topic=topic, 
+            current_concept=concept,
+            traits=traits or {},
+            exam_config=exam_config or {}
+        )
         session_store[user_id] = context
         return context
 
@@ -44,14 +50,14 @@ class SessionService:
         
         # 3. Formulate insight based on internal engine traces
         strategy_params = QuestionStrategy.determine_next_question_params(context)
-        explanation = ExplainabilityService.generate_explanation(strategy_params["decision_dict"], strategy_params["trace"])
-        insight = explanation.reason_trace[-1] # Grabs final human readable trace line
+        explanation = ExplainabilityService.generate_explanation(strategy_params["decision_dict"], strategy_params["trace"], context.confidence_score)
+        insight = explanation.reason_trace[-1] if explanation.reason_trace else "No insight available"
         
         resp = AnswerEvaluationResponse(
             is_correct=is_correct,
             correct_answer=context.current_question_answer or "No previous answer stored",
             explanation=context.current_question_explanation or "No explanation stored",
-            insight=insight
+            insight=explanation.structured_insight
         )
         
         # Write back to mocked DB Dict
@@ -59,7 +65,7 @@ class SessionService:
         return resp
 
     @staticmethod
-    def get_next_question(user_id: str) -> Question:
+    def get_next_question(user_id: str) -> QuestionResponse:
         """
         Discrete logic for pulling strategy params off the current user context and generating standard structure
         """
@@ -68,11 +74,14 @@ class SessionService:
         
         strategy_params = QuestionStrategy.determine_next_question_params(context)
         
+        style = context.traits.get("learning_style", "standard")
         question = generate_question(
             topic=strategy_params["topic"],
             concept=strategy_params["concept"],
             difficulty=strategy_params["difficulty"],
-            q_type=strategy_params["type"]
+            q_type=strategy_params["type"],
+            bloom_level=context.current_bloom,
+            style=style
         )
         
         # Store structural evaluation pieces onto the context state so /answer can catch it
@@ -82,4 +91,14 @@ class SessionService:
         context.current_concept = strategy_params["concept"]
         
         session_store[user_id] = context
-        return question
+        
+        adaptation = AdaptationTrace(
+            prev_level=context.current_level,
+            new_level=context.current_level,
+            prev_bloom=context.current_bloom,
+            new_bloom=context.current_bloom,
+            reason="Adaptive tick",
+            decision_trace=strategy_params.get("trace", [])
+        )
+        
+        return QuestionResponse(question=question, adaptation=adaptation)

@@ -18,15 +18,21 @@ class TopicBreakdown(BaseModel):
 
 class SyllabusUploadResponse(BaseModel):
     topics: List[TopicBreakdown]
+    resources: List[str] = []
+    enhanced: bool = False
     
 class TestPlanItem(BaseModel):
     topic: str
     num_questions: int
     types: List[str]
+    bloom_distribution: Dict[str, int] = {}
+    trait_bias: Dict[str, str] = {}
 
 class TestPlanRequest(BaseModel):
     topics: List[TopicBreakdown]
     marking_scheme: dict
+    exam_type: Optional[str] = "STANDARD"
+    trait_profile: Optional[dict] = None
 
 class TestPlanResponse(BaseModel):
     test_plan: List[TestPlanItem]
@@ -34,6 +40,8 @@ class TestPlanResponse(BaseModel):
 class SessionStartRequest(BaseModel):
     user_id: str
     test_plan: List[TestPlanItem]
+    exam_type: Optional[str] = "STANDARD"
+    trait_profile_id: Optional[str] = None
 
 class SubmissionRequest(BaseModel):
     user_id: str
@@ -50,6 +58,18 @@ class AnswerEvaluationResponse(BaseModel):
 class SessionNextRequest(BaseModel):
     user_id: str
 
+class AdaptationTrace(BaseModel):
+    prev_level: float
+    new_level: float
+    prev_bloom: str
+    new_bloom: str
+    reason: str
+    decision_trace: List[str]
+
+class QuestionResponse(BaseModel):
+    question: Question
+    adaptation: AdaptationTrace
+
 class DecisionTrace(BaseModel):
     decision: Dict[str, str]
     reason_trace: List[str]
@@ -57,8 +77,9 @@ class DecisionTrace(BaseModel):
 
 class LearningDNA(BaseModel):
     accuracy: int
-    topics: Dict[str, float]
-    # future behavior vectors
+    speed: str
+    behavior: str
+    estimated_marks: int
 
 # ---- PSYCHOLOGICAL PROFILING SCHEMAS ---- #
 
@@ -113,3 +134,6 @@ class SessionSummary(BaseModel):
     behavior_profile: str
     learning_dna: LearningDNA
     roadmap: List[str]
+    bloom_progress: Dict[str, float] = {}
+    trait_alignment: Dict[str, str] = {}
+    resources: List[str] = []

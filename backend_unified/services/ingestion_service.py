@@ -1,5 +1,7 @@
 import uuid
 import json
+import re
+from typing import List
 from groq import Groq
 from backend_unified.config import settings
 from backend_unified.utils.parser import parse_document, clean_text
@@ -11,22 +13,58 @@ from backend_unified.utils.logger import get_logger
 logger = get_logger("ingestion_service")
 vector_service = VectorService()
 
-def process_syllabus(file_bytes: bytes, file_type: str) -> SyllabusUploadResponse:
-    logger.info("Starting syllabus ingestion pipeline with LLM")
+def should_enhance(text: str) -> bool:
+    """Determine if syllabus text is too sparse and requires LLM expansion."""
+    words = text.split()
+    return len(words) < 80 or "unit" in text.lower() or "module" in text.lower()
+
+def extract_links(text: str) -> List[str]:
+    """Scrape explicit URLs from raw text."""
+    return re.findall(r'https?://\S+', text)
+
+def parse_input(input_type: str, file_bytes: bytes = None, text: str = None) -> str:
+    """Unified Input Interface for multi-modality."""
+    if input_type in ["application/pdf", "pdf"]:
+        return parse_document(file_bytes, input_type)
+    elif input_type in ["image/png", "image/jpeg"]:
+        # Mock OCR extraction
+        return "OCR extracted text..."
+    elif text:
+        return text
+    return ""
+
+def process_syllabus(file_bytes: bytes, file_type: str, raw_text_input: str = None) -> SyllabusUploadResponse:
+    logger.info("Starting Multi-Input Syllabus pipeline")
     
     # 1. Parse Content
-    raw_text = parse_document(file_bytes, file_type)
+    input_format = "text" if raw_text_input else file_type
+    raw_text = parse_input(input_format, file_bytes, raw_text_input)
     cleaned_text = clean_text(raw_text)
     
-    # 2. Structure Output via LLM
+    # 2. Extract Resources
+    resources = extract_links(cleaned_text)
+    
+    # 3. Enhancement Decision
+    is_enhanced = should_enhance(cleaned_text)
+    
+    # 4. Structure Output via LLM
     topics = []
     try:
         client = Groq(api_key=settings.GROQ_API_KEY)
-        prompt = (
-            "You are an expert curriculum extractor. Extract the top 2-5 main topics and their subtopics from the following syllabus text. "
-            "Output MUST be in strict JSON format matching exactly this shape: "
-            '{"topics": [{"topic": "Name", "subtopics": ["Concept 1", "Concept 2"]}]}'
-        )
+        if is_enhanced:
+            prompt = (
+                "You are an expert curriculum extractor. Extract the main topics from the syllabus text. "
+                "Because the text is brief, ENHANCE it by inferring the likely subtopics and structuring a deeper hierarchy. "
+                "Ensure standard academic normalization. "
+                "Output MUST be in strict JSON format matching exactly this shape: "
+                '{"topics": [{"topic": "Name", "subtopics": ["Concept 1", "Concept 2", "Concept 3"]}]}'
+            )
+        else:
+            prompt = (
+                "You are an expert curriculum extractor. Extract the top 2-5 main topics and their subtopics from the following syllabus text. "
+                "Output MUST be in strict JSON format matching exactly this shape: "
+                '{"topics": [{"topic": "Name", "subtopics": ["Concept 1", "Concept 2"]}]}'
+            )
         # Slicing text to prevent token limit errors for free demo
         chunk = cleaned_text[:3500] 
         
@@ -72,5 +110,5 @@ def process_syllabus(file_bytes: bytes, file_type: str) -> SyllabusUploadRespons
     if chunks:
         vector_service.store_chunks(chunks)
         
-    logger.info("Successfully embedded syllabus")
-    return SyllabusUploadResponse(topics=topics)
+    logger.info(f"Successfully embedded syllabus. Enhanced: {is_enhanced}, Resources: {len(resources)}")
+    return SyllabusUploadResponse(topics=topics, resources=resources, enhanced=is_enhanced)

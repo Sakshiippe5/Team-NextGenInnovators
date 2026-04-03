@@ -31,7 +31,7 @@ class StaticQuestionBank:
         return cls.fallback_questions.get(topic, [cls.fallback_questions["Probability"][0]])[0]
 
 
-def generate_question(topic: str, difficulty: str, q_type: str, concept: str) -> Question:
+def generate_question(topic: str, difficulty: str, q_type: str, concept: str, bloom_level: str = "understand", style: str = "standard") -> Question:
     """
     Generates a question using Groq LLM based on strategy parameters.
     """
@@ -42,7 +42,10 @@ def generate_question(topic: str, difficulty: str, q_type: str, concept: str) ->
             
         client = Groq(api_key=settings.GROQ_API_KEY)
         
-        prompt = f"""You are an expert test creator. Generate a {difficulty} {q_type} question about '{concept}' in the topic '{topic}'.
+        prompt = f"""You are an expert test creator constructing a question mapped exactly to the Bloom Taxonomy level of '{bloom_level.upper()}'.
+        Target Student Learning Style: {style.upper()}. Adapt the framing to match this style (e.g., visual=scenarios, auditory=dialogue, etc.).
+        
+        Generate a {difficulty} {q_type} question about '{concept}' in the topic '{topic}'.
         Output MUST be valid JSON exactly following:
         {{
             "question_text": "The question?",

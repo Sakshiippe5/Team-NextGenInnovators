@@ -11,6 +11,9 @@ class AdaptiveContext(BaseModel):
     current_concept: str
     current_question_answer: Optional[str] = None # Added for evaluation tracking
     current_question_explanation: Optional[str] = None # Added for decoupled evaluation
+    current_bloom: str = "remember"
+    traits: Dict[str, Any] = Field(default_factory=dict)
+    exam_config: Dict[str, Any] = Field(default_factory=dict)
     
     # Internal states
     rolling_accuracy: float = 0.0
@@ -20,6 +23,7 @@ class AdaptiveContext(BaseModel):
     momentum: float = 0.0 # Track score trajectory (+/-)
     previous_score: float = 0.0
     streak: int = 0
+    concept_frequency: Dict[str, int] = Field(default_factory=dict)
     
     # Trace arrays
     last_n_attempts: List[Dict[str, Any]] = Field(default_factory=list) # records time, correctness, type

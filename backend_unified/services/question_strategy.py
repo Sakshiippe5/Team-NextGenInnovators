@@ -20,6 +20,12 @@ class QuestionStrategy:
             
         decision, trace = decide_next_step(context, current_behavior)
         
+        # Evaluate Concept Fatigue (M8 Non-Repetition)
+        context.concept_frequency[context.current_concept] = context.concept_frequency.get(context.current_concept, 0) + 1
+        if context.concept_frequency[context.current_concept] >= 5:
+            decision["move_to_next_topic"] = True
+            trace.append("concept_oversaturated_forcing_topic_shift_M8")
+            
         # Log event tracking
         if decision["recommended_difficulty"] != "medium": # Mock change detection
             log_adaptive_event("level_changed", context.user_id, {"new_diff": decision["recommended_difficulty"]})
