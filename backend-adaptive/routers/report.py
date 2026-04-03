@@ -1,0 +1,17 @@
+from fastapi import APIRouter, HTTPException
+from backend.models.schemas import SessionSummary
+from backend.services.session_service import SessionService
+from backend.services.report_service import generate_session_summary
+
+router = APIRouter()
+
+@router.get("/{user_id}", response_model=SessionSummary)
+def get_report(user_id: str):
+    """
+    Builds the final DNA output roadmap based on the current context state tracking.
+    """
+    try:
+        context = SessionService.get_context(user_id)
+        return generate_session_summary(context)
+    except Exception as e:
+        raise HTTPException(status_code=404, detail="Session context not found for user")
