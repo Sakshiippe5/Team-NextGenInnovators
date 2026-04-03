@@ -10,7 +10,7 @@ settings = get_settings()
 class PsychAgent:
     def __init__(self):
         self.client = openai.OpenAI(
-            api_key=settings.GROK_API_KEY,
+            api_key=settings.GROQ_API_KEY,
             base_url="https://api.groq.com/openai/v1"
         )
         self.system_prompt = """You are PsychAgent — a razor-sharp psychological profiler for students.

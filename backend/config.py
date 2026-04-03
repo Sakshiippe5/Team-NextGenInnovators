@@ -2,7 +2,7 @@ from pydantic_settings import BaseSettings
 from functools import lru_cache
 
 class Settings(BaseSettings):
-    GROK_API_KEY: str = "your_groq_api_key_here"
+    GROQ_API_KEY: str = "your_groq_api_key_here"
     MODEL_NAME: str = "llama-3.3-70b-versatile" # Default Groq model
     APP_NAME: str = "PsychProfileAgent"
     DEBUG: bool = False
