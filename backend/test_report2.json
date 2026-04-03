@@ -1,0 +1,61 @@
+{
+  "student_id": "STU-001",
+  "summary": "A self-motivated and independent learner who relies on personal effort and visual learning aids.",
+  "big5_analysis": {
+    "openness": {
+      "score": 60,
+      "level": "Moderate",
+      "description": "Shows some curiosity but prefers established methods of learning."
+    },
+    "conscientiousness": {
+      "score": 80,
+      "level": "High",
+      "description": "Demonstrates strong goal-oriented behavior and perseverance."
+    },
+    "extraversion": {
+      "score": 20,
+      "level": "Low",
+      "description": "Strongly prefers solitary work and learning environments."
+    },
+    "agreeableness": {
+      "score": 50,
+      "level": "Moderate",
+      "description": "Values independence but may cooperate when necessary."
+    },
+    "neuroticism": {
+      "score": 30,
+      "level": "Low",
+      "description": "Appears to manage stress effectively through personal effort and resilience."
+    }
+  },
+  "learning_profile": {
+    "vark": {
+      "primary_style": "Visual",
+      "scores": {
+        "visual": 90,
+        "auditory": 10,
+        "read_write": 30,
+        "kinesthetic": 20
+      },
+      "description": "Learns best through visual aids like videos."
+    },
+    "growth_mindset_score": 85,
+    "grit_score": 90,
+    "resilience_level": "High"
+  },
+  "strengths": [
+    "Strong self-motivation",
+    "Perseverance in challenging tasks",
+    "Visual learning skills"
+  ],
+  "areas_for_growth": [
+    "Collaboration and teamwork skills",
+    "Seeking help from others",
+    "Emotional expression and support"
+  ],
+  "tailored_recommendations": [
+    "Engage in group projects to develop teamwork skills",
+    "Use visual learning tools for complex subjects",
+    "Practice self-reflection and emotional awareness"
+  ]
+}

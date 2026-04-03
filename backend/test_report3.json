@@ -1,0 +1,61 @@
+{
+  "student_id": "STU-001",
+  "summary": "A self-motivated and independent learner who prefers solitary work and shows strong perseverance in the face of challenges.",
+  "big5_analysis": {
+    "openness": {
+      "score": 40,
+      "level": "Low",
+      "description": "Prefers established methods and may be less open to new ideas."
+    },
+    "conscientiousness": {
+      "score": 80,
+      "level": "High",
+      "description": "Demonstrates strong goal-oriented behavior and organizational skills."
+    },
+    "extraversion": {
+      "score": 20,
+      "level": "Low",
+      "description": "Strongly prefers solitary work over group settings and social interactions."
+    },
+    "agreeableness": {
+      "score": 50,
+      "level": "Moderate",
+      "description": "Values independence but may cooperate when necessary."
+    },
+    "neuroticism": {
+      "score": 60,
+      "level": "Moderate",
+      "description": "Experiences stress, particularly with exams, but manages it effectively."
+    }
+  },
+  "learning_profile": {
+    "vark": {
+      "primary_style": "Visual",
+      "scores": {
+        "visual": 90,
+        "auditory": 30,
+        "read_write": 40,
+        "kinesthetic": 20
+      },
+      "description": "Learns best through visual content such as videos."
+    },
+    "growth_mindset_score": 80,
+    "grit_score": 85,
+    "resilience_level": "High"
+  },
+  "strengths": [
+    "Strong perseverance",
+    "Self-directed learner",
+    "Growth-oriented mindset"
+  ],
+  "areas_for_growth": [
+    "Social collaboration skills",
+    "Seeking help when needed",
+    "Managing stress related to group work"
+  ],
+  "tailored_recommendations": [
+    "Engage in solo projects to leverage independence",
+    "Use video tutorials for complex topics",
+    "Develop strategies for coping with exam stress"
+  ]
+}
