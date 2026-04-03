@@ -1,6 +1,7 @@
 import NavItems from "@/components/app/nav-items";
+import { AppBarClerkAuth } from "@/components/app/app-bar-clerk-auth";
 import { Badge } from "@/components/ui/badge";
-import { SignInButton, UserButton } from "@clerk/nextjs";
+import { UserButton } from "@clerk/nextjs";
 import { currentUser } from "@clerk/nextjs/server";
 import { Coins } from "lucide-react";
 import { Link } from "next-view-transitions";
@@ -50,13 +51,7 @@ async function AppBar() {
               <span className="font-bold text-lg">RoadmapAI</span>
             </NeobrutalismButton>
           </Link>
-          <div className="ml-auto items-center">
-            <SignInButton mode="modal">
-              <NeobrutalismButton>
-                <span className="font-medium">Sign in</span>
-              </NeobrutalismButton>
-            </SignInButton>
-          </div>
+          <AppBarClerkAuth />
         </div>
       </div>
     );

@@ -1,8 +1,7 @@
 import { Webhook } from "svix";
 import { headers } from "next/headers";
 import { UserJSON, WebhookEvent } from "@clerk/nextjs/server";
-import { db } from "@/lib/db";
-import { users } from "@/db/schema";
+import { upsertAppUser } from "@/actions/sync-user";
 
 export async function POST(req: Request) {
   const WEBHOOK_SECRET = process.env.WEBHOOK_SECRET;
@@ -53,18 +52,22 @@ export async function POST(req: Request) {
   const { id, first_name, last_name, email_addresses, image_url } =
     evt.data as UserJSON;
 
-  // Create a new user in the database.
   try {
-    await db.insert(users).values({
+    const email =
+      email_addresses[0]?.email_address ?? `${id}@users.clerk.local`;
+    const name =
+      [first_name, last_name].filter(Boolean).join(" ").trim() || "User";
+
+    await upsertAppUser({
       id,
-      name: `${first_name} ${last_name}`,
-      email: email_addresses[0].email_address,
+      name,
+      email,
       imageUrl: image_url,
     });
 
-    return new Response("New User created", { status: 201 });
+    return new Response("User upserted", { status: 201 });
   } catch (err) {
-    console.log("Error creating user: ", err);
+    console.log("Error upserting user: ", err);
     return new Response("Error occured", {
       status: 500,
     });

@@ -18,16 +18,24 @@ export default function ExplorePagination() {
     <Pagination>
       <PaginationContent>
         <PaginationItem>
-          <PaginationPrevious href={`/explore?page=${parseInt(page) - 1}`} />
+          <PaginationPrevious
+            size="default"
+            href={`/explore?page=${parseInt(page) - 1}`}
+          />
         </PaginationItem>
         <PaginationItem>
-          <PaginationLink href="#">{page}</PaginationLink>
+          <PaginationLink size="default" href="#">
+            {page}
+          </PaginationLink>
         </PaginationItem>
         <PaginationItem>
           <PaginationEllipsis />
         </PaginationItem>
         <PaginationItem>
-          <PaginationNext href={`/explore?page=${parseInt(page) + 1}`} />
+          <PaginationNext
+            size="default"
+            href={`/explore?page=${parseInt(page) + 1}`}
+          />
         </PaginationItem>
       </PaginationContent>
     </Pagination>

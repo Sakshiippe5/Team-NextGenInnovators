@@ -65,6 +65,7 @@ export default function Roadmap({ roadmapId }: Props) {
           isPending={isPending}
           renderFlow={renderFlow}
           title={query}
+          treeToSave={data?.tree}
         />
       </div>
       <Separator />

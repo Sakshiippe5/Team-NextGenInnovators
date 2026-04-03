@@ -6,10 +6,22 @@ declare global {
   var db: ReturnType<typeof drizzle<typeof schema>> | undefined;
 }
 
-const connectionString = process.env.DATABASE_URL!;
-
 function createDrizzleClient() {
-  const client = postgres(connectionString);
+  const connectionString = process.env.DATABASE_URL?.trim();
+  if (!connectionString) {
+    throw new Error(
+      "DATABASE_URL is missing. Add it to .env.local in the project root and restart the dev server (not only hot reload).",
+    );
+  }
+
+  const needsSsl =
+    connectionString.includes("supabase.com") ||
+    connectionString.includes("sslmode=require");
+
+  const client = postgres(connectionString, {
+    ...(needsSsl ? { ssl: "require" as const } : {}),
+    max: 10,
+  });
   return drizzle(client, { schema });
 }
 

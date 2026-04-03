@@ -1,9 +1,16 @@
 import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
+import { NextResponse } from "next/server";
 
+/**
+ * Next.js 16+ uses `src/proxy.ts` (not `middleware.ts`) for the edge entry.
+ * See: https://nextjs.org/docs/messages/middleware-to-proxy
+ */
 const isPublicRoute = createRouteMatcher([
   "/",
+  "/home(.*)",
+  "/history(.*)",
   "/explore",
-  // `/roadmap` and `/roadmap/:id` (the old `/roadmap/(.*)` pattern did not match `/roadmap` alone)
+  "/starter",
   "/roadmap(.*)",
   "/sign-in(.*)",
   "/sign-up(.*)",
@@ -13,19 +20,30 @@ const isPublicRoute = createRouteMatcher([
   "/api/v1/roadmap(.*)",
   "/api/v1/details(.*)",
   "/api/v1/roadmaps(.*)",
+  "/api/v1/orilley(.*)",
+  "/api/v1/history(.*)",
+  "/api/user/sync(.*)",
 ]);
 
-export default clerkMiddleware(async (auth, req) => {
+const clerkAuth = clerkMiddleware(async (auth, req) => {
   if (!isPublicRoute(req)) {
     await auth.protect();
   }
 });
 
+export default function proxy(...args: Parameters<typeof clerkAuth>) {
+  if (
+    !process.env.CLERK_SECRET_KEY?.trim() ||
+    !process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY?.trim()
+  ) {
+    return NextResponse.next();
+  }
+  return clerkAuth(...args);
+}
+
 export const config = {
   matcher: [
-    // Skip Next.js internals and all static files, unless found in search params
     "/((?!_next|[^?]*\\.(?:html?|css|js(?!on)|jpe?g|webp|png|gif|svg|ttf|woff2?|ico|csv|docx?|xlsx?|zip|webmanifest)).*)",
-    // Always run for API routes
     "/(api|trpc)(.*)",
   ],
 };

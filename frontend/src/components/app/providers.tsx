@@ -7,6 +7,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import { neobrutalism } from "@clerk/themes";
 import { ViewTransitions } from "next-view-transitions";
 import Script from "next/script";
+import { ClerkUserSync } from "@/components/app/clerk-user-sync";
 
 const queryClient = new QueryClient();
 
@@ -49,6 +50,7 @@ function Providers({ children }: { children: React.ReactNode }) {
             },
           }}
         >
+          <ClerkUserSync />
           {shell}
         </ClerkProvider>
       ) : (
