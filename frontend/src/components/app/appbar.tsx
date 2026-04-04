@@ -79,7 +79,10 @@ function AppBar() {
             </NeobrutalismButton>
           </Link>
           <ModeToggle />
-          <div className="h-9 w-32 shrink-0 animate-pulse rounded-md bg-muted" aria-busy />
+          <div
+            className="h-9 w-32 shrink-0 animate-pulse rounded-md bg-muted"
+            aria-busy
+          />
         </div>
       </div>
     );
