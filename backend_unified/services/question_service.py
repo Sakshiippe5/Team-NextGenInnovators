@@ -1,4 +1,4 @@
-from typing import List
+from typing import List, Optional
 import uuid
 import json
 from groq import Groq
@@ -31,7 +31,15 @@ class StaticQuestionBank:
         return cls.fallback_questions.get(topic, [cls.fallback_questions["Probability"][0]])[0]
 
 
-def generate_question(topic: str, difficulty: str, q_type: str, concept: str, bloom_level: str = "understand", style: str = "standard") -> Question:
+def generate_question(
+    topic: str,
+    difficulty: str,
+    q_type: str,
+    concept: str,
+    bloom_level: str = "understand",
+    style: str = "standard",
+    avoid_similar: Optional[List[str]] = None,
+) -> Question:
     """
     Generates a question using Groq LLM based on strategy parameters.
     """
@@ -42,10 +50,20 @@ def generate_question(topic: str, difficulty: str, q_type: str, concept: str, bl
             
         client = Groq(api_key=settings.GROQ_API_KEY)
         
+        avoid_block = ""
+        if avoid_similar:
+            snippets = [s[:180].replace('"', "'") for s in avoid_similar[-6:] if s]
+            if snippets:
+                avoid_block = (
+                    "\nIMPORTANT: Do NOT repeat or closely paraphrase these earlier question stems "
+                    "(write a clearly different scenario and wording):\n- "
+                    + "\n- ".join(snippets)
+                )
+
         prompt = f"""You are an expert test creator constructing a question mapped exactly to the Bloom Taxonomy level of '{bloom_level.upper()}'.
         Target Student Learning Style: {style.upper()}. Adapt the framing to match this style (e.g., visual=scenarios, auditory=dialogue, etc.).
         
-        Generate a {difficulty} {q_type} question about '{concept}' in the topic '{topic}'.
+        Generate a {difficulty} {q_type} question about '{concept}' in the topic '{topic}'.{avoid_block}
         Output MUST be valid JSON exactly following:
         {{
             "question_text": "The question?",

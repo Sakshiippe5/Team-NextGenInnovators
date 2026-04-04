@@ -25,6 +25,8 @@ def start_session(request: SessionStartRequest):
         traits=traits,
         exam_config=exam_cfg
     )
+    if request.test_plan:
+        SessionService.set_test_plan_queue(request.user_id, request.test_plan)
     return {"message": "Session tracking established", "user_id": request.user_id}
 
 @router.post("/answer", response_model=AnswerEvaluationResponse)

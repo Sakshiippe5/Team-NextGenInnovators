@@ -7,6 +7,18 @@ import {
 import { Menu } from "lucide-react";
 import Link from "next/link";
 
+const links = [
+  { href: "/dashboard", label: "Dashboard" },
+  { href: "/tests", label: "Tests" },
+  { href: "/reports", label: "Reports" },
+  { href: "/play", label: "Play game" },
+  { href: "/roadmap", label: "Learn a topic" },
+  { href: "/explore", label: "Explore" },
+  { href: "/starter", label: "Starter" },
+  { href: "/history", label: "History" },
+  { href: "/profile", label: "Profile" },
+];
+
 const MobileDrawer = () => {
   return (
     <Sheet>
@@ -15,17 +27,18 @@ const MobileDrawer = () => {
       </SheetTrigger>
       <SheetContent
         side="left"
-        className=" h-full flex flex-col items-center justify-center gap-4"
+        className="flex h-full flex-col items-stretch justify-start gap-1 pt-10"
       >
-        <SheetClose asChild>
-          <Link href="/explore">Explore</Link>
-        </SheetClose>
-        <SheetClose asChild>
-          <Link href="/dashboard">Dashboard</Link>
-        </SheetClose>
-        <SheetClose asChild>
-          <Link href="/roadmap">Roadmap</Link>
-        </SheetClose>
+        {links.map((l) => (
+          <SheetClose asChild key={l.href}>
+            <Link
+              href={l.href}
+              className="rounded-lg border-2 border-transparent px-3 py-2 font-semibold hover:bg-muted"
+            >
+              {l.label}
+            </Link>
+          </SheetClose>
+        ))}
       </SheetContent>
     </Sheet>
   );

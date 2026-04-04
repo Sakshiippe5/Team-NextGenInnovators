@@ -5,6 +5,7 @@ import * as React from "react";
 import { Toaster } from "sonner";
 import { ClerkProvider } from "@clerk/nextjs";
 import { neobrutalism } from "@clerk/themes";
+import { ThemeProvider } from "next-themes";
 import { ViewTransitions } from "next-view-transitions";
 import Script from "next/script";
 import { ClerkUserSync } from "@/components/app/clerk-user-sync";
@@ -37,6 +38,12 @@ function Providers({ children }: { children: React.ReactNode }) {
     </ViewTransitions>
   );
 
+  const themed = (
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem disableTransitionOnChange>
+      {shell}
+    </ThemeProvider>
+  );
+
   return (
     <QueryClientProvider client={queryClient}>
       {clerkPk ? (
@@ -46,15 +53,15 @@ function Providers({ children }: { children: React.ReactNode }) {
           appearance={{
             baseTheme: neobrutalism,
             variables: {
-              colorPrimary: "black",
+              colorPrimary: "hsl(var(--foreground))",
             },
           }}
         >
           <ClerkUserSync />
-          {shell}
+          {themed}
         </ClerkProvider>
       ) : (
-        shell
+        themed
       )}
     </QueryClientProvider>
   );

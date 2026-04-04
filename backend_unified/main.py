@@ -31,13 +31,14 @@ async def log_requests(request: Request, call_next):
 def health_check():
     return {"status": "healthy", "version": "1.0.0"}
 
-from backend_unified.routers import syllabus, test, session, report, profile
+from backend_unified.routers import syllabus, test, session, report, profile, quiz_party_ws
 
 app.include_router(syllabus.router, prefix="/api/syllabus", tags=["Syllabus"])
 app.include_router(test.router, prefix="/api/test", tags=["Test Plan"])
 app.include_router(session.router, prefix="/api/session", tags=["Session & Core Adaptive"])
 app.include_router(report.router, prefix="/api/report", tags=["Reporting"])
 app.include_router(profile.router, prefix="/api/profile", tags=["Psychological Profiling"])
+app.include_router(quiz_party_ws.router, prefix="/api/quiz-party", tags=["Quiz Party Realtime"])
 
 if __name__ == "__main__":
     import uvicorn

@@ -126,6 +126,53 @@ class ProfileSessionState(BaseModel):
     is_complete: bool = False
     confidence_scores: Dict[str, float] = {}
 
+
+# ---- SESSION REPORT (extended analytics) ---- #
+
+
+class QuestionAttemptRecord(BaseModel):
+    """Single question outcome for dashboards and drill-down."""
+
+    question_id: str
+    topic: str
+    concept: str
+    difficulty: str
+    question_type: str
+    bloom_level: str
+    is_correct: bool
+    time_taken_seconds: float
+    behavior_tag: str = "normal"
+
+
+class AggregateBucket(BaseModel):
+    """Accuracy / volume for a grouping key (topic, bloom, difficulty, etc.)."""
+
+    key: str
+    attempts: int
+    correct: int
+    accuracy_pct: float
+    avg_time_seconds: float = 0.0
+
+
+class TimeAnalytics(BaseModel):
+    total_attempt_time_seconds: float = 0.0
+    avg_time_per_question_seconds: float = 0.0
+    median_time_seconds: float = 0.0
+    min_time_seconds: float = 0.0
+    max_time_seconds: float = 0.0
+    avg_time_when_correct_seconds: float = 0.0
+    avg_time_when_incorrect_seconds: float = 0.0
+
+
+class SessionTotals(BaseModel):
+    session_duration_wall_clock_seconds: float = 0.0
+    total_questions_attempted: int = 0
+    total_correct: int = 0
+    overall_accuracy_pct: float = 0.0
+    max_correct_streak: int = 0
+    ending_streak: int = 0
+
+
 class SessionSummary(BaseModel):
     final_level: float
     improvement: str
@@ -137,3 +184,37 @@ class SessionSummary(BaseModel):
     bloom_progress: Dict[str, float] = {}
     trait_alignment: Dict[str, str] = {}
     resources: List[str] = []
+
+    # Extended analytics (populated when attempt_history exists)
+    confidence_score: float = Field(
+        0.5, description="Model-estimated learner confidence 0–1"
+    )
+    rolling_accuracy: float = Field(
+        0.0, description="Accuracy over the recent attempt window"
+    )
+    concept_mastery_estimates: Dict[str, float] = Field(
+        default_factory=dict,
+        description="Per-concept smoothed accuracy (0–1)",
+    )
+    detected_behaviors_all: List[str] = Field(
+        default_factory=list,
+        description="Distinct behavior tags observed this session",
+    )
+    question_wise_performance: List[QuestionAttemptRecord] = Field(
+        default_factory=list,
+        description="Chronological attempt log with outcomes",
+    )
+    by_topic: List[AggregateBucket] = Field(default_factory=list)
+    by_bloom_level: List[AggregateBucket] = Field(default_factory=list)
+    by_difficulty: List[AggregateBucket] = Field(default_factory=list)
+    by_question_type: List[AggregateBucket] = Field(default_factory=list)
+    behavior_frequency: Dict[str, int] = Field(
+        default_factory=dict,
+        description="Count of attempts per behavior tag",
+    )
+    time_analytics: Optional[TimeAnalytics] = None
+    session_totals: Optional[SessionTotals] = None
+    actionable_insights: List[str] = Field(
+        default_factory=list,
+        description="Concrete next steps derived from metrics",
+    )

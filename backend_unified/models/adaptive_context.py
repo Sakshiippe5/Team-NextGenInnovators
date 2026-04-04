@@ -1,3 +1,4 @@
+import time
 from pydantic import BaseModel, Field
 from typing import List, Dict, Any, Optional
 
@@ -29,6 +30,18 @@ class AdaptiveContext(BaseModel):
     last_n_attempts: List[Dict[str, Any]] = Field(default_factory=list) # records time, correctness, type
     detected_behaviors: List[str] = Field(default_factory=list)
     recent_decision_traces: List[Dict[str, Any]] = Field(default_factory=list)
+
+    # Session analytics (full attempt log for reporting)
+    session_started_at: float = Field(default_factory=time.time)
+    active_question_meta: Dict[str, Any] = Field(default_factory=dict)
+    attempt_history: List[Dict[str, Any]] = Field(default_factory=list)
+    cumulative_time_seconds: float = 0.0
+    max_streak_session: int = 0
+
+    # One entry per planned question — aligns adaptive topic with syllabus units
+    topic_question_queue: List[str] = Field(default_factory=list)
+    # Recent stems to reduce duplicate questions from the LLM
+    recent_question_stems: List[str] = Field(default_factory=list)
     
     def add_attempt(self, is_correct: bool, time_taken: float, question_type: str):
         self.last_n_attempts.append({
@@ -42,7 +55,8 @@ class AdaptiveContext(BaseModel):
             self.streak += 1
         else:
             self.streak = 0
-            
+        self.max_streak_session = max(self.max_streak_session, self.streak)
+
         # Keep window size limited intentionally e.g. 5
         if len(self.last_n_attempts) > 5:
             self.last_n_attempts.pop(0)

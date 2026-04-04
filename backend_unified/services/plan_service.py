@@ -21,8 +21,29 @@ def generate_test_plan(request: TestPlanRequest) -> TestPlanResponse:
     if request.trait_profile:
         trait_bias = map_traits(request.trait_profile)
     
-    for breakdown in request.topics:
-        base_questions = request.marking_scheme.get("default_questions", 5)
+    ms = request.marking_scheme or {}
+    n_topics = len(request.topics)
+    # Total questions for the whole test (split across units when multiple topics)
+    total_questions = int(
+        ms.get("total_questions")
+        or ms.get("default_questions")
+        or 5
+    )
+    total_questions = max(1, total_questions)
+
+    def counts_per_topic() -> list[int]:
+        if n_topics <= 0:
+            return []
+        if n_topics == 1:
+            return [total_questions]
+        base = total_questions // n_topics
+        rem = total_questions % n_topics
+        return [base + (1 if i < rem else 0) for i in range(n_topics)]
+
+    per_topic_counts = counts_per_topic()
+
+    for idx, breakdown in enumerate(request.topics):
+        base_questions = per_topic_counts[idx] if idx < len(per_topic_counts) else max(1, total_questions // max(n_topics, 1))
         
         # Determine question types locally based on traits
         q_types = ["mcq", "conceptual", "application"]

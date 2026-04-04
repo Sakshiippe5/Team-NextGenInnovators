@@ -8,7 +8,9 @@ router = APIRouter()
 @router.get("/{user_id}", response_model=SessionSummary)
 def get_report(user_id: str):
     """
-    Builds the final DNA output roadmap based on the current context state tracking.
+    Session report: legacy summary (level, weak concepts, roadmap, Learning DNA) plus
+    extended analytics when `/session/answer` has been used — question-level log, aggregates
+    by topic/Bloom/difficulty/type, time analytics, behavior counts, and actionable insights.
     """
     try:
         context = SessionService.get_context(user_id)

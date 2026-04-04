@@ -1,10 +1,12 @@
 import uuid
 import json
 import re
-from typing import List
+from typing import List, Optional
+
 from groq import Groq
+
 from backend_unified.config import settings
-from backend_unified.utils.parser import parse_document, clean_text
+from backend_unified.utils.parser import clean_text, extract_text_from_upload
 from backend_unified.utils.embeddings import generate_embedding
 from backend_unified.models.schemas import SyllabusUploadResponse, TopicBreakdown
 from backend_unified.services.vector_service import VectorService
@@ -13,102 +15,144 @@ from backend_unified.utils.logger import get_logger
 logger = get_logger("ingestion_service")
 vector_service = VectorService()
 
-def should_enhance(text: str) -> bool:
-    """Determine if syllabus text is too sparse and requires LLM expansion."""
-    words = text.split()
-    return len(words) < 80 or "unit" in text.lower() or "module" in text.lower()
+# Below this, extraction is unreliable — do not call LLM with fake curriculum
+MIN_TEXT_CHARS = 50
+MIN_WORDS = 12
+
+SYSTEM_EXTRACT = (
+    "You extract syllabus or course outline structure from the user's document text ONLY.\n"
+    "Rules:\n"
+    "- Every topic and subtopic must reflect the actual document: use chapter titles, unit names, "
+    "learning outcomes, and section headings from the text.\n"
+    "- Do NOT invent placeholder curricula (for example generic 'Introduction to Curriculum' blocks) "
+    "when they are not supported by the text.\n"
+    "- If the text is empty, garbled, or too short to identify real sections, return {\"topics\": []}.\n"
+    "- Respond with valid JSON only, shape: "
+    '{"topics": [{"topic": "string", "subtopics": ["string", ...]}]}'
+)
+
+SYSTEM_SPARSE = (
+    "The syllabus text is short. Extract ONLY what is explicitly stated; use 1–4 topics if the text "
+    "clearly lists them. Do not invent filler modules. If nothing clear exists, return {\"topics\": []}.\n"
+    "JSON only: "
+    '{"topics": [{"topic": "string", "subtopics": ["string", ...]}]}'
+)
+
+
+def _word_count(text: str) -> int:
+    return len(text.split())
+
 
 def extract_links(text: str) -> List[str]:
-    """Scrape explicit URLs from raw text."""
-    return re.findall(r'https?://\S+', text)
+    return re.findall(r"https?://\S+", text)
 
-def parse_input(input_type: str, file_bytes: bytes = None, text: str = None) -> str:
-    """Unified Input Interface for multi-modality."""
-    if input_type in ["application/pdf", "pdf"]:
-        return parse_document(file_bytes, input_type)
-    elif input_type in ["image/png", "image/jpeg"]:
-        # Mock OCR extraction
-        return "OCR extracted text..."
-    elif text:
-        return text
-    return ""
 
-def process_syllabus(file_bytes: bytes, file_type: str, raw_text_input: str = None) -> SyllabusUploadResponse:
-    logger.info("Starting Multi-Input Syllabus pipeline")
-    
-    # 1. Parse Content
-    input_format = "text" if raw_text_input else file_type
-    raw_text = parse_input(input_format, file_bytes, raw_text_input)
+def process_syllabus(
+    file_bytes: bytes,
+    file_type: Optional[str],
+    raw_text_input: Optional[str] = None,
+    filename: Optional[str] = None,
+) -> SyllabusUploadResponse:
+    """
+    Parse upload, extract topics via Groq, embed chunks into Qdrant.
+    """
+    logger.info("Starting syllabus pipeline (filename=%r, content_type=%r)", filename, file_type)
+
+    if raw_text_input:
+        raw_text = raw_text_input
+    else:
+        raw_text = extract_text_from_upload(file_bytes, file_type, filename)
+
     cleaned_text = clean_text(raw_text)
-    
-    # 2. Extract Resources
     resources = extract_links(cleaned_text)
-    
-    # 3. Enhancement Decision
-    is_enhanced = should_enhance(cleaned_text)
-    
-    # 4. Structure Output via LLM
-    topics = []
+
+    if not cleaned_text.strip():
+        raise ValueError(
+            "No text could be extracted from this file. "
+            "If the PDF is scanned (photos of pages), install the Tesseract OCR program, "
+            "ensure it is on your PATH, run: pip install pytesseract Pillow, then restart the server. "
+            "See: https://github.com/UB-Mannheim/tesseract/wiki (Windows)"
+        )
+
+    if len(cleaned_text) < MIN_TEXT_CHARS or _word_count(cleaned_text) < MIN_WORDS:
+        logger.warning(
+            "Extracted text too short (%d chars, %d words); refusing LLM hallucination",
+            len(cleaned_text),
+            _word_count(cleaned_text),
+        )
+        return SyllabusUploadResponse(
+            topics=[],
+            resources=resources,
+            enhanced=False,
+        )
+
+    wc = _word_count(cleaned_text)
+    is_sparse = wc < 120
+    is_enhanced = is_sparse
+
+    topics: List[TopicBreakdown] = []
+    if not (settings.GROQ_API_KEY or "").strip():
+        logger.error("GROQ_API_KEY is not set")
+        raise ValueError("Server misconfiguration: GROQ_API_KEY is missing. Set it in backend_unified/.env")
+
     try:
         client = Groq(api_key=settings.GROQ_API_KEY)
-        if is_enhanced:
-            prompt = (
-                "You are an expert curriculum extractor. Extract the main topics from the syllabus text. "
-                "Because the text is brief, ENHANCE it by inferring the likely subtopics and structuring a deeper hierarchy. "
-                "Ensure standard academic normalization. "
-                "Output MUST be in strict JSON format matching exactly this shape: "
-                '{"topics": [{"topic": "Name", "subtopics": ["Concept 1", "Concept 2", "Concept 3"]}]}'
-            )
-        else:
-            prompt = (
-                "You are an expert curriculum extractor. Extract the top 2-5 main topics and their subtopics from the following syllabus text. "
-                "Output MUST be in strict JSON format matching exactly this shape: "
-                '{"topics": [{"topic": "Name", "subtopics": ["Concept 1", "Concept 2"]}]}'
-            )
-        # Slicing text to prevent token limit errors for free demo
-        chunk = cleaned_text[:3500] 
-        
+        system_prompt = SYSTEM_SPARSE if is_sparse else SYSTEM_EXTRACT
+        chunk = cleaned_text[:8000]
+
         response = client.chat.completions.create(
             messages=[
-                {"role": "system", "content": prompt},
-                {"role": "user", "content": f"Text: {chunk}"} # Groq does JSON mode best when properly prompted
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": f"Syllabus document text:\n\n{chunk}"},
             ],
-            model="llama-3.3-70b-versatile",
-            response_format={"type": "json_object"}
+            model=settings.MODEL_NAME or "llama-3.3-70b-versatile",
+            response_format={"type": "json_object"},
+            temperature=0.2,
         )
         result_str = response.choices[0].message.content
+        if not result_str:
+            raise ValueError("Empty LLM response")
         data = json.loads(result_str)
         for t in data.get("topics", []):
-            topics.append(TopicBreakdown(**t))
-            
-    except Exception as e:
-        logger.error(f"Failed to use LLM parsing: {e}")
-        # fallback
-        topics = [TopicBreakdown(topic="Fallback Topic", subtopics=["Fallback Subtopic"])]
+            try:
+                topics.append(TopicBreakdown(**t))
+            except Exception as ex:
+                logger.warning("Skipping invalid topic row: %s (%s)", t, ex)
 
-    # 3. Embed & Store
+    except Exception as e:
+        logger.exception("LLM syllabus extraction failed: %s", e)
+        raise ValueError(f"Could not structure syllabus topics: {e!s}") from e
+
     chunks = []
-    # Arbitrary small chunk creation
     chunk_size = 500
-    text_chunks = [cleaned_text[i:i+chunk_size] for i in range(0, len(cleaned_text), chunk_size)]
-    
-    for i, txt in enumerate(text_chunks):
-        if not txt.strip(): continue
+    text_chunks = [
+        cleaned_text[i : i + chunk_size] for i in range(0, len(cleaned_text), chunk_size)
+    ]
+
+    for txt in text_chunks:
+        if not txt.strip():
+            continue
         chunk_id = str(uuid.uuid4())
         vector = generate_embedding(txt)
-        # Try to map chunk to a topic naively
         mapped_topic = topics[0].topic if topics else "general"
-        chunks.append({
-            "id": chunk_id,
-            "vector": vector,
-            "payload": {
-                "topic": mapped_topic,
-                "text": txt
+        chunks.append(
+            {
+                "id": chunk_id,
+                "vector": vector,
+                "payload": {"topic": mapped_topic, "text": txt},
             }
-        })
-            
+        )
+
     if chunks:
-        vector_service.store_chunks(chunks)
-        
-    logger.info(f"Successfully embedded syllabus. Enhanced: {is_enhanced}, Resources: {len(resources)}")
+        try:
+            vector_service.store_chunks(chunks)
+        except Exception as ex:
+            logger.warning("Vector store failed (topics still returned): %s", ex)
+
+    logger.info(
+        "Syllabus pipeline done: topics=%d, enhanced=%s, resources=%d",
+        len(topics),
+        is_enhanced,
+        len(resources),
+    )
     return SyllabusUploadResponse(topics=topics, resources=resources, enhanced=is_enhanced)
