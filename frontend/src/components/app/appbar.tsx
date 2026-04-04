@@ -22,6 +22,12 @@ import NeobrutalismButton from "@/components/ui/neobrutalism-button";
 function AppBar() {
   const { user, isLoaded } = useUser();
   const [userCredits, setUserCredits] = React.useState<number | undefined>();
+  /** Avoid Clerk SSR/client mismatch: `isLoaded` is often false on server and true on first client paint. */
+  const [mounted, setMounted] = React.useState(false);
+
+  React.useEffect(() => {
+    setMounted(true);
+  }, []);
 
   React.useEffect(() => {
     if (!user) {
@@ -46,11 +52,34 @@ function AppBar() {
     );
   }
 
+  /** Server + first client paint: stable guest-shaped shell (matches post-hydration loading state layout). */
+  if (!mounted) {
+    return (
+      <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
+        <div className="flex items-center justify-center gap-3 p-2">
+          <Link href="/">
+            <NeobrutalismButton>
+              <span className="text-xl font-bold sm:text-2xl">BloomEd</span>
+            </NeobrutalismButton>
+          </Link>
+          <ModeToggle />
+          <div className="h-9 w-32 shrink-0" aria-hidden />
+        </div>
+      </div>
+    );
+  }
+
   if (!isLoaded) {
     return (
       <div className="mx-auto max-w-7xl sm:px-6 lg:px-8">
-        <div className="flex h-12 items-center justify-center p-2">
-          <div className="h-9 w-32 animate-pulse rounded-md bg-muted" />
+        <div className="flex items-center justify-center gap-3 p-2">
+          <Link href="/">
+            <NeobrutalismButton>
+              <span className="text-xl font-bold sm:text-2xl">BloomEd</span>
+            </NeobrutalismButton>
+          </Link>
+          <ModeToggle />
+          <div className="h-9 w-32 shrink-0 animate-pulse rounded-md bg-muted" aria-busy />
         </div>
       </div>
     );
